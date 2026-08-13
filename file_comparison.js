@@ -87,6 +87,7 @@ async function compareFiles(all_file_content, options) {
   let max_credit = Object.keys(all_file_content).length;
   let current_credit = 0;
   let missing_required_word = options.must_have.map((x) => true); // Start with all required words missing
+  let message = ""; // Will be reported to learner
 
   for (const fileName in all_file_content) {
     const f = all_file_content[fileName];
@@ -111,7 +112,7 @@ async function compareFiles(all_file_content, options) {
       console.log(f.type);
     } else {
       // Yay it's a text file!
-      displayFileInfo(f);
+      displayMessage("Filename: " + f.name, "output-area", true);
 
       // Go get the file to compare to.
       let correct_file_content = await retrieveFile(
@@ -155,6 +156,10 @@ async function compareFiles(all_file_content, options) {
         for (const prohibited_word of options.cannot_have) {
           if (submitted_by_line[i + offset].includes(prohibited_word)) {
             console.log("Prohibited word found: " + prohibited_word);
+            message +=
+              "Prohibited word found: " +
+              prohibited_word +
+              ". No credit for this file.\n";
             this_file_credit = 0;
             break;
           }
@@ -170,11 +175,40 @@ async function compareFiles(all_file_content, options) {
         // console.log('Comparing line ' + (i + 1));
         if (i + offset >= submitted_by_line.length) {
           console.log("Ran out of lines in submitted file.");
+          message +=
+            "Ran out of lines in " + f.name + ". No credit for this file.\n";
           break;
         }
         if (correct_by_line[i] === submitted_by_line[i + offset]) {
           // Perfect match, everything's great.
           match_by_line.push(true);
+          continue;
+        }
+
+        if (correct_by_line[i] === "" && submitted_by_line[i + offset] !== "") {
+          // The correct file has a blank line, but the submitted file does not.
+          // Hold back our count on the submitted file by one line.
+          console.log(
+            "Holding back one line at " +
+              (i + 1) +
+              " in the submitted file because the correct file has a blank line.",
+          );
+          apply_partial_credit.blank_lines = true;
+          offset--;
+          continue;
+        } else if (
+          correct_by_line[i] !== "" &&
+          submitted_by_line[i + offset] === ""
+        ) {
+          // The submitted file has a blank line, but the correct file does not.
+          // Move forward the line we're examining in the submitted file by one line.
+          console.log(
+            "Moving forward one line at " +
+              (i + 1) +
+              " in the submitted file because the submitted file has a blank line.",
+          );
+          apply_partial_credit.blank_lines = true;
+          offset++;
           continue;
         }
 
@@ -190,6 +224,14 @@ async function compareFiles(all_file_content, options) {
             console.log(
               "Line " + (i + 1) + " is entirely different. Done comparing.",
             );
+            message +=
+              "Line " +
+              (i + 1) +
+              " is entirely different in " +
+              f.name +
+              ". No credit for this file.\n";
+            this_file_credit = 0;
+            break;
           }
         } else {
           // Whitespace checking
@@ -199,30 +241,6 @@ async function compareFiles(all_file_content, options) {
               " matches except for whitespace at start or end.",
           );
           apply_partial_credit.spaces = true;
-        }
-        if (correct_by_line[i] === "" && submitted_by_line[i + offset] !== "") {
-          // The correct file has a blank line, but the submitted file does not.
-          // Hold back our count on the submitted file by one line.
-          console.log(
-            "Holding back one line at " +
-              (i + 1) +
-              " in the submitted file because the correct file has a blank line.",
-          );
-          apply_partial_credit.blank_lines = true;
-          offset--;
-        } else if (
-          correct_by_line[i] !== "" &&
-          submitted_by_line[i + offset] === ""
-        ) {
-          // The submitted file has a blank line, but the correct file does not.
-          // Move forward the line we're examining in the submitted file by one line.
-          console.log(
-            "Moving forward one line at " +
-              (i + 1) +
-              " in the submitted file because the submitted file has a blank line.",
-          );
-          apply_partial_credit.blank_lines = true;
-          offset++;
         }
       }
       console.log("Match by line for " + f.name + ":");
@@ -240,6 +258,23 @@ async function compareFiles(all_file_content, options) {
     }
     current_credit += this_file_credit;
     console.log("Credit for " + f.name + ": " + this_file_credit);
+
+    if (this_file_credit > 0) {
+      if (options.credit_options.spaces && apply_partial_credit.spaces) {
+        message += "Partial credit for whitespace.\n";
+      }
+      if (options.credit_options.case && apply_partial_credit.case) {
+        message += "Partial credit for case.\n";
+      }
+      if (
+        options.credit_options.blank_lines &&
+        apply_partial_credit.blank_lines
+      ) {
+        message += "Partial credit for blank lines.\n";
+      }
+    }
+
+    displayMessage(message, "output-area", true);
   }
   let credit = current_credit / max_credit;
   console.log("Final credit: " + current_credit + "/" + max_credit);
@@ -256,13 +291,6 @@ async function getOptions() {
   return options;
 }
 
-/** Puts basic info about the uploaded file into the info area. */
-function displayFileInfo(file_info) {
-  displayMessage("Name: " + file_info.name, "output-area", true);
-  // displayMessage('Type: ' + file_info.type, 'output-area', true);
-  // displayMessage('Size: ' + file_info.size + ' bytes', 'output-area', true);
-}
-
 /**
  * Displays a message in the specified area.
  * @param {string} message - The message to display.
@@ -275,7 +303,8 @@ function displayMessage(message, area_id, append = false) {
     info_area.innerHTML = ""; // Clear previous messages
   }
   let p = document.createElement("p");
-  p.textContent = message;
+  message = message.replace(/\n/g, "<br>"); // Replace newlines with <br> for HTML display
+  p.innerHTML = message;
   info_area.appendChild(p);
 }
 
