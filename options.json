@@ -1,15 +1,18 @@
-  {
-    "correct_answers": ["README.md", "README copy.md"],
-    "must_have": [],
-    "cannot_have": [],
-    "files_or_hashes": "files",
-    "credit_options": {
-      "blank_lines": 0.8,
-      "case": 0.6,
-      "encoding": 1,
-      "spaces": 0.9,
-      "low_cutoff": 0.5,
-      "high_cutoff": 0.9,
-      "participation_points": 0.2
-    }
+{
+  "test_file_source": "test_reference",
+  "correct_answers": [
+    "MIT_LICENSE.txt"
+  ],
+  "must_have": [],
+  "cannot_have": [],
+  "files_or_hashes": "files",
+  "credit_options": {
+    "blank_lines": 0.8,
+    "case": 0.6,
+    "encoding": 1,
+    "spaces": 0.9,
+    "low_cutoff": 0.5,
+    "high_cutoff": 0.9,
+    "participation_points": 0.2
   }
+}

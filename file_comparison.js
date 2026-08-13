@@ -114,7 +114,10 @@ async function compareFiles(all_file_content, options) {
       displayFileInfo(f);
 
       // Go get the file to compare to.
-      let correct_file_content = await retrieveFile(f.name);
+      let correct_file_content = await retrieveFile(
+        f.name,
+        options.test_file_source,
+      );
 
       // Using hashes if you want to avoid revealing the correct answer
       if (options.files_or_hashes === "hashes") {
@@ -248,7 +251,7 @@ async function compareFiles(all_file_content, options) {
  * On edX these are declared in Python and inserted into the HTML.
  */
 async function getOptions() {
-  let options = JSON.parse(await retrieveFile(options_filename));
+  let options = JSON.parse(await retrieveFile(options_filename, ""));
   console.log(options);
   return options;
 }
@@ -277,9 +280,9 @@ function displayMessage(message, area_id, append = false) {
 }
 
 /** Loads the file from the same folder this script is in. */
-async function retrieveFile(fileName) {
-  const file_content = await fetch(fileName).then((response) =>
-    response.text(),
+async function retrieveFile(file_name, folder_name) {
+  const file_content = await fetch(folder_name + "/" + file_name).then(
+    (response) => response.text(),
   );
   return file_content;
 }
