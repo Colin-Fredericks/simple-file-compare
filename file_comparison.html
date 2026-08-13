@@ -2,8 +2,7 @@
 <html>
 
 <head>
-  <script src="jschannel.js"></script>
-  <script src="file_comparison.js" defer></script>
+  <script src="file_comparison.js" data-options="options.json" defer></script>
   <style>
     body {
       font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -34,23 +33,6 @@
 </head>
 
 <body>
-  <div class="hx-comparison-options">
-  {
-    "correct_answers": ["README.md", "README copy.md"],
-    "must_have": [],
-    "cannot_have": [],
-    "files_or_hashes": "files",
-    "credit_options": {
-      "blank_lines": 0.8,
-      "case": 0.6,
-      "encoding": 1,
-      "spaces": 0.9,
-      "low_cutoff": 0.5,
-      "high_cutoff": 0.9,
-      "participation_points": 0.2
-    }
-  }
-  </div>
   <button id="file-drop-area" class="drop-area">
     Drop files here or click to select files
   </button>

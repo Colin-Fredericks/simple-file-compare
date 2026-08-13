@@ -1,16 +1,11 @@
 "use strict";
-
-// If the student comes to this problem for the first time,
-// they start with a blank.
-var JSProblemState = {
-  files: [],
-};
+let options_filename = document.currentScript.getAttribute("data-options");
 
 /** Create the file drop area and set up listeners. No parameters. */
-function init() {
+async function init() {
   // Create a file-drop area for processing.
   const fileDropArea = document.getElementById("file-drop-area");
-  const options = getOptions();
+  const options = await getOptions();
 
   // Add event listeners for drag and drop functionality.
   fileDropArea.addEventListener("dragover", (event) => {
@@ -44,59 +39,6 @@ function init() {
   });
 }
 window.addEventListener("load", init);
-
-// This wrapper function is necessary.
-// You can rename it if you want, just make sure the attributes
-// in your <jsinput> tag match the function name here.
-// This wrapper function is necessary.
-var file_comparison = (function () {
-  // REQUIRED --- DO NOT REMOVE/CHANGE!!
-  var channel;
-
-  // REQUIRED --- DO NOT REMOVE/CHANGE!!
-  if (window.parent !== window) {
-    channel = Channel.build({
-      //
-      window: window.parent,
-      origin: "*",
-      scope: "JSInput",
-    });
-    channel.bind("getGrade", getGrade);
-    channel.bind("getState", getState);
-    channel.bind("setState", setState);
-  }
-
-  // getState() and setState() are required by the problem type.
-  function getState() {
-    console.log("getting state");
-    return JSON.stringify(JSProblemState);
-  }
-
-  function setState() {
-    console.log("setting state");
-    let stateStr = arguments.length === 1 ? arguments[0] : arguments[1];
-    JSProblemState = JSON.parse(stateStr);
-    // Configure the problem so that it matches its previous state.
-  }
-
-  function getGrade() {
-    console.log("getting grade");
-
-    // Log the problem state.
-    // This is called from the parent window's Javascript so that we can write to the official edX logs.
-    parent.logThatThing(JSProblemState);
-
-    // Return the whole problem state.
-    return JSON.stringify(JSProblemState);
-  }
-
-  // REQUIRED --- DO NOT REMOVE/CHANGE!!
-  return {
-    getState: getState,
-    setState: setState,
-    getGrade: getGrade,
-  };
-})();
 
 /**
  * Reads in the learner files and returns most of the info as an object.
@@ -305,9 +247,8 @@ async function compareFiles(all_file_content, options) {
  * Pulls options from the HTML on the page.
  * On edX these are declared in Python and inserted into the HTML.
  */
-function getOptions() {
-  let options_div = document.querySelector(".hx-comparison-options");
-  let options = JSON.parse(options_div.textContent.trim());
+async function getOptions() {
+  let options = JSON.parse(await retrieveFile(options_filename));
   console.log(options);
   return options;
 }
