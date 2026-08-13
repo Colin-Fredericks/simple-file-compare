@@ -1,11 +1,22 @@
 "use strict";
+console.log("working");
 let options_filename = document.currentScript.getAttribute("data-options");
 
 /** Create the file drop area and set up listeners. No parameters. */
 async function init() {
   // Create a file-drop area for processing.
   const fileDropArea = document.getElementById("file-drop-area");
-  const options = await getOptions();
+  let all_file_content = {};
+  // Can be set in the HTML for testing, or retrieved from the server for production.
+  if (!window.file_comparison_options) {
+    window.file_comparison_options = await getOptions();
+  }
+  const options = window.file_comparison_options;
+  displayMessage(
+    "Required files: " + options.correct_answers.join(", "),
+    "prompt-area",
+    false,
+  );
 
   // Add event listeners for drag and drop functionality.
   fileDropArea.addEventListener("dragover", (event) => {
@@ -18,11 +29,12 @@ async function init() {
     fileDropArea.classList.remove("dragover");
   });
 
-  fileDropArea.addEventListener("drop", (event) => {
+  fileDropArea.addEventListener("drop", async (event) => {
     event.preventDefault();
     fileDropArea.classList.remove("dragover");
     const files = event.dataTransfer.files;
-    readFiles(files, options);
+    all_file_content = await readFiles(files, options);
+    compareFiles(all_file_content, options);
   });
 
   // Let people click on the area to open a file dialog
@@ -31,14 +43,15 @@ async function init() {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.multiple = true; // Allow multiple files to be selected.
-    fileInput.addEventListener("change", (event) => {
+    fileInput.addEventListener("change", async (event) => {
       const files = event.target.files;
-      readFiles(files, options);
+      all_file_content = await readFiles(files, options);
+      compareFiles(all_file_content, options);
     });
     fileInput.click();
   });
 }
-window.addEventListener("load", init);
+init();
 
 /**
  * Reads in the learner files and returns most of the info as an object.
@@ -69,12 +82,7 @@ async function readFiles(files, options) {
       reader.readAsText(f);
     });
   }
-  // console.log(all_file_content);
-  if (Object.keys(all_file_content).length !== options.correct_answers.length) {
-    console.error("Did not upload all files.");
-  } else {
-    await compareFiles(all_file_content, options);
-  }
+  return Promise.resolve(all_file_content);
 }
 
 /**
@@ -84,6 +92,20 @@ async function readFiles(files, options) {
  * @param {*} options
  */
 async function compareFiles(all_file_content, options) {
+  if (Object.keys(all_file_content).length !== options.correct_answers.length) {
+    console.error("Did not upload all files.");
+    displayMessage(
+      "You uploaded " +
+        Object.keys(all_file_content).length +
+        " out of " +
+        options.correct_answers.length +
+        " required files. Please upload the required files.",
+      "output-area",
+      false,
+    );
+    return;
+  }
+
   let max_credit = Object.keys(all_file_content).length;
   let current_credit = 0;
   let missing_required_word = options.must_have.map((x) => true); // Start with all required words missing
@@ -258,26 +280,38 @@ async function compareFiles(all_file_content, options) {
     }
     this_file_credit = Math.round(this_file_credit * 100) / 100; // Round to two decimal places
     current_credit += this_file_credit;
-    console.log("Credit for " + f.name + ": " + decimalToPercentage(this_file_credit));
+    console.log(
+      "Credit for " + f.name + ": " + decimalToPercentage(this_file_credit),
+    );
 
     if (this_file_credit > 0) {
       if (options.credit_options.spaces && apply_partial_credit.spaces) {
-        message += "Partial credit for whitespace: " + decimalToPercentage(options.credit_options.spaces) + "\n";
+        message +=
+          "Partial credit for whitespace: " +
+          decimalToPercentage(options.credit_options.spaces) +
+          "\n";
       }
       if (options.credit_options.case && apply_partial_credit.case) {
-        message += "Partial credit for case: " + decimalToPercentage(options.credit_options.case) + "\n";
+        message +=
+          "Partial credit for case: " +
+          decimalToPercentage(options.credit_options.case) +
+          "\n";
       }
       if (
         options.credit_options.blank_lines &&
         apply_partial_credit.blank_lines
       ) {
-        message += "Partial credit for blank lines: " + decimalToPercentage(options.credit_options.blank_lines) + "\n";
+        message +=
+          "Partial credit for blank lines: " +
+          decimalToPercentage(options.credit_options.blank_lines) +
+          "\n";
       }
     }
-
   }
   let credit = current_credit / max_credit;
-  console.log("Final credit: " + decimalToPercentage(current_credit / max_credit));
+  console.log(
+    "Final credit: " + decimalToPercentage(current_credit / max_credit),
+  );
   message += "Final credit: " + decimalToPercentage(credit) + "\n";
   displayMessage(message, "output-area", true);
   // Send it back or save the state or whatever.
@@ -310,17 +344,24 @@ function displayMessage(message, area_id, append = false) {
   info_area.appendChild(p);
 }
 
-/** Turns a decimal number or string to a percentage string. */
-function decimalToPercentage(decimal, n=0) {
+/**
+ * Turns a decimal number or string to a percentage string.
+ * @param {number|string} decimal - The decimal number to convert.
+ * @param {number} n - The number of decimal places to include in the percentage.
+ * @returns {string} The percentage string.
+ */
+function decimalToPercentage(decimal, n = 0) {
   decimal = parseFloat(decimal);
   return (decimal * 100).toFixed(n) + "%";
 }
 
-/** Loads the file from the same folder this script is in. */
+/** Loads the file from the listed folder. Folder can be a fully qualified URL. */
 async function retrieveFile(file_name, folder_name) {
-  const file_content = await fetch(folder_name + "/" + file_name).then(
-    (response) => response.text(),
-  );
+  let base = window.location.href.split("/").slice(0, -1).join("/");
+  console.log(base + "/" + folder_name + file_name);
+  const file_content = await fetch(
+    base + "/" + folder_name + "/" + file_name,
+  ).then((response) => response.text());
   return file_content;
 }
 
@@ -337,6 +378,3 @@ async function sha256(source) {
   const resultBytes = [...new Uint8Array(digest)];
   return resultBytes.map((x) => x.toString(16).padStart(2, "0")).join("");
 }
-
-// Just letting us know that the iframe is working.
-console.log("inner ready");
