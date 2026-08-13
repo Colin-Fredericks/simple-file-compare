@@ -256,28 +256,30 @@ async function compareFiles(all_file_content, options) {
       console.log("Missing required word(s) in " + f.name);
       this_file_credit = 0;
     }
+    this_file_credit = Math.round(this_file_credit * 100) / 100; // Round to two decimal places
     current_credit += this_file_credit;
-    console.log("Credit for " + f.name + ": " + this_file_credit);
+    console.log("Credit for " + f.name + ": " + decimalToPercentage(this_file_credit));
 
     if (this_file_credit > 0) {
       if (options.credit_options.spaces && apply_partial_credit.spaces) {
-        message += "Partial credit for whitespace.\n";
+        message += "Partial credit for whitespace: " + decimalToPercentage(options.credit_options.spaces) + "\n";
       }
       if (options.credit_options.case && apply_partial_credit.case) {
-        message += "Partial credit for case.\n";
+        message += "Partial credit for case: " + decimalToPercentage(options.credit_options.case) + "\n";
       }
       if (
         options.credit_options.blank_lines &&
         apply_partial_credit.blank_lines
       ) {
-        message += "Partial credit for blank lines.\n";
+        message += "Partial credit for blank lines: " + decimalToPercentage(options.credit_options.blank_lines) + "\n";
       }
     }
 
-    displayMessage(message, "output-area", true);
   }
   let credit = current_credit / max_credit;
-  console.log("Final credit: " + current_credit + "/" + max_credit);
+  console.log("Final credit: " + decimalToPercentage(current_credit / max_credit));
+  message += "Final credit: " + decimalToPercentage(credit) + "\n";
+  displayMessage(message, "output-area", true);
   // Send it back or save the state or whatever.
 }
 
@@ -306,6 +308,12 @@ function displayMessage(message, area_id, append = false) {
   message = message.replace(/\n/g, "<br>"); // Replace newlines with <br> for HTML display
   p.innerHTML = message;
   info_area.appendChild(p);
+}
+
+/** Turns a decimal number or string to a percentage string. */
+function decimalToPercentage(decimal, n=0) {
+  decimal = parseFloat(decimal);
+  return (decimal * 100).toFixed(n) + "%";
 }
 
 /** Loads the file from the same folder this script is in. */
