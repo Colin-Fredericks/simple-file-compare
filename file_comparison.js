@@ -358,7 +358,8 @@ function decimalToPercentage(decimal, n = 0) {
 /** Loads the file from the listed folder. Folder can be a fully qualified URL. */
 async function retrieveFile(file_name, folder_name) {
   let base = window.location.href.split("/").slice(0, -1).join("/");
-  console.log(base + "/" + folder_name + file_name);
+  folder_name = folder_name.replace(/^\/|\/$/g, ""); // Remove leading and trailing slashes
+  console.log(base + "/" + folder_name + "/" + file_name);
   const file_content = await fetch(
     base + "/" + folder_name + "/" + file_name,
   ).then((response) => response.text());
