@@ -168,10 +168,13 @@ async function compareFiles(all_file_content, options) {
         let msg = "";
         if (options.hashes[filename] === submitted_file_hash) {
           msg = "Hashes match for " + f.name + ".\n";
+          missing_required_word = missing_required_word.map((x) => false); // All required words are present if the hash matches.
         } else {
           msg = "Hashes do not match for " + f.name + ". No credit for this file.\n";
           this_file_credit = 0;
         }
+        current_credit += this_file_credit;
+
         console.log(msg);
         message += msg;
         continue;
