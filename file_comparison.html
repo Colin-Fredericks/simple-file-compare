@@ -29,16 +29,23 @@
       }
     </style>
     <script>
+      // Notes: 
+      // - Filenames cannot be blank.
+      // - Hashes can be blank if you're comparing whole files.
+      // - must_have and cannot_have are string arrays.
       window.file_comparison_options = {
         test_file_source: "test_reference",
-        correct_answers: ["MIT_LICENSE.txt"],
+        files_or_hashes: "files",
+        filenames: ["MIT_LICENSE.txt"],
+        hashes: {
+          "MIT_LICENSE.txt": "9f356617dfe569e825683b7b8b96ae97d62349c5c461a94eef8ff8adc0533ea8"
+        },
         must_have: [],
         cannot_have: [],
-        files_or_hashes: "files",
         credit_options: {
-          blank_lines: 0.8,
-          case: 0.6,
-          spaces: 0.9,
+          blank_lines: .8,
+          case: .7,
+          spaces: .9,
           low_cutoff: 0.5,
           high_cutoff: 0.9,
           participation_points: 0.2,
