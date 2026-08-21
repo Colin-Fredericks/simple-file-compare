@@ -276,7 +276,7 @@ async function compareFiles(all_file_content, options) {
 
     // If we're not applying any partial credit, this is a perfect match.
     // Otherwise, explain why.
-    let applying_partial_credit = Object.values(apply_partial_credit).every(x => x === false);
+    let applying_partial_credit = Object.values(apply_partial_credit).some(x => x === true);
     if (!applying_partial_credit && this_file_credit === 1) {
       message += "Perfect match for " + f.name + ".\n";
     } else {
