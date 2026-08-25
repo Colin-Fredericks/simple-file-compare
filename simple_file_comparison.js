@@ -2,6 +2,15 @@
 console.log("working");
 let options_filename = document.currentScript.getAttribute("data-options");
 
+/*********************************
+ * TODO
+ * 
+ * - Need to switch away from getting asset URL, because LXP works so differently.
+ *   We need to get the file's fully qualified URL instead, and pass that around.
+ * - 
+ */
+
+
 (function () {
   /** Check environment and initialize. */
   if (window.location.href.includes("edx.org")) {
@@ -9,7 +18,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
   } else if (window.location.href.includes("localhost")) {
     init("localhost", "");
   } else if (window.location.href.includes("harvardonline.harvard.edu")) {
-    init("lxp", "");
+    init("lxp", getLxpAssetURL(window.location.href));
   } else {
     console.error(
       "Unknown environment - expecting to run on edX, LXP, or localhost.",
@@ -29,6 +38,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
       window.file_comparison_options = await getOptions(assetURL);
     }
     const options = window.file_comparison_options;
+    options.assetURL = assetURL;
     displayMessage(
       "Required files: " + options.filenames.join(", "),
       "prompt-area",
@@ -175,7 +185,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
         let correct_file_content = await retrieveFile(
           f.name,
           options.test_file_source,
-          options,
+          options.assetURL,
         );
 
         // Using hashes if you want to avoid revealing the correct answer
@@ -493,17 +503,11 @@ let options_filename = document.currentScript.getAttribute("data-options");
   }
 
   /** Loads the file from the listed folder. Folder can be a fully qualified URL. */
-  async function retrieveFile(file_name, folder_name, options) {
-    let base = "";
-    if (options.base_url) {
-      base = options.base_url;
-    } else {
-      base = window.location.href.split("/").slice(0, -1).join("/");
-    }
+  async function retrieveFile(file_name, folder_name, assetURL) {
     folder_name = folder_name.replace(/^\/|\/$/g, ""); // Remove leading and trailing slashes
-    console.log(base + "/" + folder_name + "/" + file_name);
+    console.log(assetURL + "/" + folder_name + "/" + file_name);
     const file_content = await fetch(
-      base + "/" + folder_name + "/" + file_name,
+      assetURL + "/" + folder_name + "/" + file_name,
     ).then((response) => response.text());
     return file_content;
   }
@@ -542,6 +546,59 @@ let options_filename = document.currentScript.getAttribute("data-options");
     staticFolderURL = staticFolderURL + "+type@asset+block/";
 
     return staticFolderURL;
+  }
+
+  // UNFINISHED
+  function getLxpAssetURL(windowURL) {
+    let all_images = hxMediaLookupTable();
+    let image_url_array = Object.keys(all_images).map((key) => all_images[key]);
+
+    let target_div = document.querySelector("#all_images");
+    image_url_array.forEach((url) => {
+      let new_image = document.createElement("img");
+      new_image.classList.add("browser-icon");
+      new_image.src = url;
+      target_div.appendChild(new_image);
+    });
+
+    /**
+     * Creates an object with media filenames with keys and their URLs as values,
+     * so that we can handle media files by name rather than by ID.
+     *
+     * @returns {Object} media_lookup -
+     */
+
+    function hxMediaLookupTable() {
+      let data_te_ids = document.currentScript
+        .getAttribute("data-te-ids")
+        .split(",");
+      console.log("What TEs am I running in?");
+      console.log(data_te_ids);
+
+      let media = window.lxp.te[data_te_ids[0]].media;
+      console.log("Media proxy");
+      console.log(media);
+      let media_array = Object.keys(media);
+      console.log("Media identifiers");
+      console.log(media_array);
+      let media_names = Object.keys(media).map((x) => media[x].filename);
+      console.log("Image filenames");
+      console.log(media_names);
+      let media_url_array = media_array.map((key) => media[key].publicUrl);
+      console.log("Image URLs");
+      console.log(media_url_array);
+
+      let media_lookup = {};
+      media_array.forEach((key, index) => {
+        // Use the first image with that name; don't overwrite with later ones.
+        if (!media_lookup[key]) {
+          media_lookup[key] = media_url_array[index];
+        } else {
+          console.log("Duplicate media filename: " + key);
+        }
+      });
+      return media_lookup;
+    }
   }
 
   /**
