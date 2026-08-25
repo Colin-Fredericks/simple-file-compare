@@ -7,8 +7,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
  * 
  * - Need to switch away from getting asset URL, because LXP works so differently.
  *   We need to get the file's fully qualified URL instead, and pass that around.
- * - 
- */
+ * - Simplify the whole comparison process, maybe factorize more.
+ **********************************/
 
 
 (function () {
