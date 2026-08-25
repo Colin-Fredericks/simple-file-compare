@@ -384,33 +384,6 @@ function matchesWithoutCaseAndWhitespace(str1, str2) {
   return trimmedStr1.toLowerCase() === trimmedStr2.toLowerCase();
 }
 
-/** Adjust for blank lines */
-function correctTheOffset(correct_lines_array, submitted_lines_array, i, offset) {
-  if (correct_lines_array[i] === "" && submitted_lines_array[i + offset] !== "") {
-    // The correct file has a blank line, but the submitted file does not.
-    // Hold back our count on the submitted file by one line.
-    console.log(
-      "Holding back one line at " +
-      (i + 1) +
-      " in the submitted file because the correct file has a blank line.",
-    );
-    offset--;
-  } else if (
-    correct_lines_array[i] !== "" &&
-    submitted_lines_array[i + offset] === ""
-  ) {
-    // The submitted file has a blank line, but the correct file does not.
-    // Move forward the line we're examining in the submitted file by one line.
-    console.log(
-      "Moving forward one line at " +
-      (i + 1) +
-      " in the submitted file because the submitted file has a blank line.",
-    );
-    offset++;
-  }
-  return offset;
-}
-
 /** Assembles the message for partial credit (per file) */
 function partialCreditMessage(options, apply_partial_credit) {
 
