@@ -14,11 +14,11 @@ let options_filename = document.currentScript.getAttribute("data-options");
 (function () {
   /** Check environment and initialize. */
   if (window.location.href.includes("edx.org")) {
-    init("edx", getEdxAssetURL(window.location.href));
-  } else if (window.location.href.includes("localhost")) {
-    init("localhost", "");
-  } else if (window.location.href.includes("harvardonline.harvard.edu")) {
-    init("lxp", getLxpAssetURL(window.location.href));
+    init("edx");
+  } else if (window.location.href.includes("localhost") || window.location.href.includes("127.0.0.1")) {
+    init("localhost");
+  } else if (window.location.href.includes("harvardonline.harvard.edu") || window.location.href.includes("lxp.huit.harvard.edu")) {
+    init("lxp");
   } else {
     console.error(
       "Unknown environment - expecting to run on edX, LXP, or localhost.",
@@ -27,24 +27,23 @@ let options_filename = document.currentScript.getAttribute("data-options");
   }
 
   /** Create the file drop area and set up listeners. No parameters. */
-  async function init(environment, assetURL) {
-    if (environment === "edx") {
-    }
-    // Create a file-drop area for processing.
-    const fileDropArea = document.getElementById("file-drop-area");
+  async function init(environment) {
     let all_file_content = {};
-    // Can be set in the HTML for testing, or retrieved from the server for production.
+
+    // Options can be set in the HTML for testing, or retrieved from the server for production.
     if (!window.file_comparison_options) {
-      window.file_comparison_options = await getOptions(assetURL);
+      window.file_comparison_options = await getOptions(environment);
     }
     const options = window.file_comparison_options;
-    options.assetURL = assetURL;
+
     displayMessage(
       "Required files: " + options.filenames.join(", "),
       "prompt-area",
       false,
     );
 
+    // Create a file-drop area for processing.
+    const fileDropArea = document.getElementById("file-drop-area");
     // Add event listeners for drag and drop functionality.
     fileDropArea.addEventListener("dragover", (event) => {
       event.preventDefault();
@@ -122,10 +121,10 @@ let options_filename = document.currentScript.getAttribute("data-options");
       console.error("Did not upload all files.");
       displayMessage(
         "You uploaded " +
-          Object.keys(all_file_content).length +
-          " out of " +
-          options.filenames.length +
-          " required files. Please upload the required files.",
+        Object.keys(all_file_content).length +
+        " out of " +
+        options.filenames.length +
+        " required files. Please upload the required files.",
         "output-area",
         false,
       );
@@ -185,7 +184,6 @@ let options_filename = document.currentScript.getAttribute("data-options");
         let correct_file_content = await retrieveFile(
           f.name,
           options.test_file_source,
-          options.assetURL,
         );
 
         // Using hashes if you want to avoid revealing the correct answer
@@ -305,8 +303,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
           ) {
             console.log(
               "Line " +
-                (i + 1) +
-                " matches except for whitespace at start or end.",
+              (i + 1) +
+              " matches except for whitespace at start or end.",
             );
             apply_partial_credit.spaces = true;
           } else if (
@@ -317,8 +315,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
           ) {
             console.log(
               "Line " +
-                (i + 1) +
-                " matches except for case and whitespace at start or end.",
+              (i + 1) +
+              " matches except for case and whitespace at start or end.",
             );
             apply_partial_credit.case = true;
             apply_partial_credit.spaces = true;
@@ -412,9 +410,9 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * Pulls options from the HTML on the page.
    * On edX these are declared in Python and inserted into the HTML.
    */
-  async function getOptions(assetURL) {
+  async function getOptions(environment) {
     let options = JSON.parse(
-      await retrieveFile(options_filename, "", assetURL),
+      await retrieveFile(options_filename, "", environment),
     );
     console.log(options);
     return options;
@@ -503,19 +501,34 @@ let options_filename = document.currentScript.getAttribute("data-options");
   }
 
   /** Loads the file from the listed folder. Folder can be a fully qualified URL. */
-  async function retrieveFile(file_name, folder_name, assetURL) {
+  async function retrieveFile(file_name, folder_name, environment) {
     folder_name = folder_name.replace(/^\/|\/$/g, ""); // Remove leading and trailing slashes
-    console.log(assetURL + "/" + folder_name + "/" + file_name);
+    let file_url = "";
+    if (environment === "edx") {
+      file_url = getEdxFileURL(file_name, "");
+    } else if (environment === "lxp") {
+      file_url = getLxpFileURL(file_name, "");
+    } else {
+      // Assume localhost or other environment
+      file_url = window.location.origin + "/" + folder_name + "/" + file_name;
+    }
+    console.log(file_url);
     const file_content = await fetch(
-      assetURL + "/" + folder_name + "/" + file_name,
+      file_url,
     ).then((response) => response.text());
     return file_content;
   }
 
   /**
    * Gets asset URLs for edX
+   * 
+   * @param {string} filename - The name of the file to retrieve.
+   * @param {string} test_url - Optional URL to use instead of the current window location, for testing
+   * @returns {string} The fully qualified URL for the asset file.
    */
-  function getEdxAssetURL(windowURL) {
+  function getEdxFileURL(filename, test_url = "") {
+    windowURL = test_url || window.location.href;
+
     // Sometimes escape characters are not our friends.
     // Replace + and : if they're present.
     if (windowURL.includes("%2B")) {
@@ -524,9 +537,6 @@ let options_filename = document.currentScript.getAttribute("data-options");
     if (windowURL.includes("%3A")) {
       windowURL = windowURL.replace("%3A", ":");
     }
-
-    // Match the site in case we need it for something later.
-    let courseSiteURL = windowURL.match(/https?:\/\/.+\//)[0];
 
     // Switch from course to asset
     let staticFolderURL = windowURL.replace("courses/course", "asset");
@@ -545,11 +555,18 @@ let options_filename = document.currentScript.getAttribute("data-options");
     // Switch from courseware to type
     staticFolderURL = staticFolderURL + "+type@asset+block/";
 
-    return staticFolderURL;
+    return staticFolderURL + filename;
   }
 
   // UNFINISHED
-  function getLxpAssetURL(windowURL) {
+  /**
+   * Gets asset URLs for LXP
+   * 
+   * @param {string} filename - The name of the file to retrieve.
+   * @param {string} test_url - Optional URL to use instead of the current window location, for testing
+   * @returns {string} The fully qualified URL for the asset file.
+   */
+  function getLxpFileURL(filename, test_url = "") {
     let all_images = hxMediaLookupTable();
     let image_url_array = Object.keys(all_images).map((key) => all_images[key]);
 
@@ -568,46 +585,47 @@ let options_filename = document.currentScript.getAttribute("data-options");
      * @returns {Object} media_lookup -
      */
 
-    function hxMediaLookupTable() {
-      let data_te_ids = document.currentScript
-        .getAttribute("data-te-ids")
-        .split(",");
-      console.log("What TEs am I running in?");
-      console.log(data_te_ids);
+  }
 
-      let media = window.lxp.te[data_te_ids[0]].media;
-      console.log("Media proxy");
-      console.log(media);
-      let media_array = Object.keys(media);
-      console.log("Media identifiers");
-      console.log(media_array);
-      let media_names = Object.keys(media).map((x) => media[x].filename);
-      console.log("Image filenames");
-      console.log(media_names);
-      let media_url_array = media_array.map((key) => media[key].publicUrl);
-      console.log("Image URLs");
-      console.log(media_url_array);
+  function hxMediaLookupTable() {
+    let data_te_ids = document.currentScript
+      .getAttribute("data-te-ids")
+      .split(",");
+    console.log("What TEs am I running in?");
+    console.log(data_te_ids);
 
-      let media_lookup = {};
-      media_array.forEach((key, index) => {
-        // Use the first image with that name; don't overwrite with later ones.
-        if (!media_lookup[key]) {
-          media_lookup[key] = media_url_array[index];
-        } else {
-          console.log("Duplicate media filename: " + key);
-        }
-      });
-      return media_lookup;
-    }
+    let media = window.lxp.te[data_te_ids[0]].media;
+    console.log("Media proxy");
+    console.log(media);
+    let media_array = Object.keys(media);
+    console.log("Media identifiers");
+    console.log(media_array);
+    let media_names = Object.keys(media).map((x) => media[x].filename);
+    console.log("Image filenames");
+    console.log(media_names);
+    let media_url_array = media_array.map((key) => media[key].publicUrl);
+    console.log("Image URLs");
+    console.log(media_url_array);
+
+    let media_lookup = {};
+    media_array.forEach((key, index) => {
+      // Use the first image with that name; don't overwrite with later ones.
+      if (!media_lookup[key]) {
+        media_lookup[key] = media_url_array[index];
+      } else {
+        console.log("Duplicate media filename: " + key);
+      }
+    });
+    return media_lookup;
   }
 
   /**
-   * Hashes text to SHA256 for the purpose of comparing answers without revealing the answer itself.
-   * Taken from https://stackoverflow.com/a/70243259/1330737
-   *
-   * @param {string} source
-   * @returns {Promise<string>}
-   */
+ * Hashes text to SHA256 for the purpose of comparing answers without revealing the answer itself.
+ * Taken from https://stackoverflow.com/a/70243259/1330737
+ *
+ * @param {string} source
+ * @returns {Promise<string>}
+ */
   async function sha256(source) {
     const sourceBytes = new TextEncoder().encode(source);
     const digest = await crypto.subtle.digest("SHA-256", sourceBytes);
