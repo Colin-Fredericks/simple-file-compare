@@ -4,25 +4,28 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
 /*********************************
  * TODO
- * 
+ *
  * - Need to switch away from getting asset URL, because LXP works so differently.
  *   We need to get the file's fully qualified URL instead, and pass that around.
  * - Simplify the whole comparison process, maybe factorize more.
  **********************************/
 
-
 (function () {
   /** Check environment and initialize. */
   if (window.location.href.includes("edx.org")) {
     init("edx");
-  } else if (window.location.href.includes("localhost") || window.location.href.includes("127.0.0.1")) {
+  } else if (
+    window.location.href.includes("localhost") ||
+    window.location.href.includes("127.0.0.1")
+  ) {
     init("localhost");
-  } else if (window.location.href.includes("harvardonline.harvard.edu") || window.location.href.includes("lxp.huit.harvard.edu")) {
+  } else if (
+    window.location.href.includes("harvardonline.harvard.edu") ||
+    window.location.href.includes("lxp.huit.harvard.edu")
+  ) {
     init("lxp");
   } else {
-    console.error(
-      "Unknown environment - expecting to run on edX, LXP, or localhost.",
-    );
+    console.error("Unknown environment - expecting to run on edX, LXP, or localhost.");
     // Done
   }
 
@@ -36,11 +39,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
     }
     const options = window.file_comparison_options;
 
-    displayMessage(
-      "Required files: " + options.filenames.join(", "),
-      "prompt-area",
-      false,
-    );
+    displayMessage("Required files: " + options.filenames.join(", "), "prompt-area", false);
 
     // Create a file-drop area for processing.
     const fileDropArea = document.getElementById("file-drop-area");
@@ -121,10 +120,10 @@ let options_filename = document.currentScript.getAttribute("data-options");
       console.error("Did not upload all files.");
       displayMessage(
         "You uploaded " +
-        Object.keys(all_file_content).length +
-        " out of " +
-        options.filenames.length +
-        " required files. Please upload the required files.",
+          Object.keys(all_file_content).length +
+          " out of " +
+          options.filenames.length +
+          " required files. Please upload the required files.",
         "output-area",
         false,
       );
@@ -174,17 +173,13 @@ let options_filename = document.currentScript.getAttribute("data-options");
       ) {
         // This is not a text file.
         let outputArea = document.querySelector("#output-area");
-        outputArea.innerHTML +=
-          "<p>" + f.name + " is of type " + f.type + ", not a text file.</p>";
+        outputArea.innerHTML += "<p>" + f.name + " is of type " + f.type + ", not a text file.</p>";
       } else {
         // Yay it's a text file!
         displayMessage("Filename: " + f.name, "output-area", true);
 
         // Go get the file to compare to.
-        let correct_file_content = await retrieveFile(
-          f.name,
-          options.test_file_source,
-        );
+        let correct_file_content = await retrieveFile(f.name, options.test_file_source);
 
         // Using hashes if you want to avoid revealing the correct answer
         if (options.files_or_hashes === "hashes") {
@@ -195,10 +190,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
             msg = "Hashes match for " + f.name + ".\n";
             missing_required_word = missing_required_word.map((x) => false); // All required words are present if the hash matches.
           } else {
-            msg =
-              "Hashes do not match for " +
-              f.name +
-              ". No credit for this file.\n";
+            msg = "Hashes do not match for " + f.name + ". No credit for this file.\n";
             this_file_credit = 0;
           }
           current_credit += this_file_credit;
@@ -232,9 +224,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
             if (submitted_file_by_line[i].includes(prohibited_word)) {
               console.log("Prohibited word found: " + prohibited_word);
               message +=
-                "Prohibited word found: " +
-                prohibited_word +
-                ". No credit for this file.\n";
+                "Prohibited word found: " + prohibited_word + ". No credit for this file.\n";
               this_file_credit = 0;
               break;
             }
@@ -287,43 +277,22 @@ let options_filename = document.currentScript.getAttribute("data-options");
           }
 
           // Imperfect match, check for partial credit.
-          if (
-            matchesWithoutCase(
-              correct_file_by_line[i],
-              submitted_file_by_line[i],
-            )
-          ) {
+          if (matchesWithoutCase(correct_file_by_line[i], submitted_file_by_line[i])) {
             console.log("Line " + (i + 1) + " is the same except for case.");
             apply_partial_credit.case = true;
-          } else if (
-            matchesWithoutWhitespace(
-              correct_file_by_line[i],
-              submitted_file_by_line[i],
-            )
-          ) {
-            console.log(
-              "Line " +
-              (i + 1) +
-              " matches except for whitespace at start or end.",
-            );
+          } else if (matchesWithoutWhitespace(correct_file_by_line[i], submitted_file_by_line[i])) {
+            console.log("Line " + (i + 1) + " matches except for whitespace at start or end.");
             apply_partial_credit.spaces = true;
           } else if (
-            matchesWithoutCaseAndWhitespace(
-              correct_file_by_line[i],
-              submitted_file_by_line[i],
-            )
+            matchesWithoutCaseAndWhitespace(correct_file_by_line[i], submitted_file_by_line[i])
           ) {
             console.log(
-              "Line " +
-              (i + 1) +
-              " matches except for case and whitespace at start or end.",
+              "Line " + (i + 1) + " matches except for case and whitespace at start or end.",
             );
             apply_partial_credit.case = true;
             apply_partial_credit.spaces = true;
           } else {
-            console.log(
-              "Line " + (i + 1) + " is entirely different. Done comparing.",
-            );
+            console.log("Line " + (i + 1) + " is entirely different. Done comparing.");
             message +=
               "Line " +
               (i + 1) +
@@ -347,9 +316,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
       // If we're not applying any partial credit, this is a perfect match.
       // Otherwise, explain why.
-      let applying_partial_credit = Object.values(apply_partial_credit).some(
-        (x) => x === true,
-      );
+      let applying_partial_credit = Object.values(apply_partial_credit).some((x) => x === true);
       if (!applying_partial_credit && this_file_credit === 1) {
         message += "Perfect match for " + f.name + ".\n";
       } else {
@@ -363,9 +330,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
       this_file_credit = Math.round(this_file_credit * 100) / 100; // Round to two decimal places
       current_credit += this_file_credit;
-      console.log(
-        "Credit for " + f.name + ": " + decimalToPercentage(this_file_credit),
-      );
+      console.log("Credit for " + f.name + ": " + decimalToPercentage(this_file_credit));
     }
 
     /**********************************
@@ -411,9 +376,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * On edX these are declared in Python and inserted into the HTML.
    */
   async function getOptions(environment) {
-    let options = JSON.parse(
-      await retrieveFile(options_filename, "", environment),
-    );
+    let options = JSON.parse(await retrieveFile(options_filename, "", environment));
     console.log(options);
     return options;
   }
@@ -459,10 +422,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
         decimalToPercentage(options.credit_options.case) +
         "\n";
     }
-    if (
-      options.credit_options.blank_lines < 1 &&
-      apply_partial_credit.blank_lines
-    ) {
+    if (options.credit_options.blank_lines < 1 && apply_partial_credit.blank_lines) {
       message +=
         "Partial credit for extra blank lines: x" +
         decimalToPercentage(options.credit_options.blank_lines) +
@@ -513,15 +473,13 @@ let options_filename = document.currentScript.getAttribute("data-options");
       file_url = window.location.origin + "/" + folder_name + "/" + file_name;
     }
     console.log(file_url);
-    const file_content = await fetch(
-      file_url,
-    ).then((response) => response.text());
+    const file_content = await fetch(file_url).then((response) => response.text());
     return file_content;
   }
 
   /**
    * Gets asset URLs for edX
-   * 
+   *
    * @param {string} filename - The name of the file to retrieve.
    * @param {string} test_url - Optional URL to use instead of the current window location, for testing
    * @returns {string} The fully qualified URL for the asset file.
@@ -561,7 +519,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
   // UNFINISHED
   /**
    * Gets asset URLs for LXP
-   * 
+   *
    * @param {string} filename - The name of the file to retrieve.
    * @param {string} test_url - Optional URL to use instead of the current window location, for testing
    * @returns {string} The fully qualified URL for the asset file.
@@ -584,13 +542,10 @@ let options_filename = document.currentScript.getAttribute("data-options");
      *
      * @returns {Object} media_lookup -
      */
-
   }
 
   function hxMediaLookupTable() {
-    let data_te_ids = document.currentScript
-      .getAttribute("data-te-ids")
-      .split(",");
+    let data_te_ids = document.currentScript.getAttribute("data-te-ids").split(",");
     console.log("What TEs am I running in?");
     console.log(data_te_ids);
 
@@ -620,19 +575,17 @@ let options_filename = document.currentScript.getAttribute("data-options");
   }
 
   /**
- * Hashes text to SHA256 for the purpose of comparing answers without revealing the answer itself.
- * Taken from https://stackoverflow.com/a/70243259/1330737
- *
- * @param {string} source
- * @returns {Promise<string>}
- */
+   * Hashes text to SHA256 for the purpose of comparing answers without revealing the answer itself.
+   * Taken from https://stackoverflow.com/a/70243259/1330737
+   *
+   * @param {string} source
+   * @returns {Promise<string>}
+   */
   async function sha256(source) {
     const sourceBytes = new TextEncoder().encode(source);
     const digest = await crypto.subtle.digest("SHA-256", sourceBytes);
     const resultBytes = [...new Uint8Array(digest)];
-    const hash = resultBytes
-      .map((x) => x.toString(16).padStart(2, "0"))
-      .join("");
+    const hash = resultBytes.map((x) => x.toString(16).padStart(2, "0")).join("");
     console.log("SHA256 hash: " + hash);
     return hash;
   }
