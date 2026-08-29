@@ -485,7 +485,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * @returns {string} The fully qualified URL for the asset file.
    */
   function getEdxFileURL(filename, test_url = "") {
-    windowURL = test_url || window.location.href;
+    let windowURL = test_url || window.location.href;
+    console.log(filename);
 
     // Sometimes escape characters are not our friends.
     // Replace + and : if they're present.
@@ -496,24 +497,23 @@ let options_filename = document.currentScript.getAttribute("data-options");
       windowURL = windowURL.replace("%3A", ":");
     }
 
-    // Switch from course to asset
-    let staticFolderURL = windowURL.replace("courses/course", "asset");
-
-    // In case we're rendering in XBlock URL mode:
-    if (staticFolderURL.search("xblock/block-v1") > -1) {
-      staticFolderURL = staticFolderURL.replace("xblock/block", "asset");
-      staticFolderURL = staticFolderURL.replace("+type@", "/");
+    // Regex for asset-v\d:HarvardX+(.+?)+\dT\d\d\d\d
+    let assetRegex = /-v\d:(.+?)\+(.+?)\+\dT\d\d\d\d/;
+    // Capture the course identifier from the URL
+    console.log("Window URL: " + windowURL);
+    let match = windowURL.match(assetRegex);
+    let courseIdentifier = "";
+    if (match) {
+      courseIdentifier = match[0];
+      console.log("Course identifier: " + courseIdentifier);
+    } else {
+      console.error("Could not extract course identifier from URL.");
     }
 
-    // Ditch the unique identifier for this resource.
-    let pluslocation = staticFolderURL.indexOf("+");
-    let finalLocation = staticFolderURL.indexOf("/", pluslocation);
-    staticFolderURL = staticFolderURL.slice(0, finalLocation);
+    let staticFileURL =
+      "https://courses.edx.org/" + "asset" + courseIdentifier + "+type@asset+block/" + filename;
 
-    // Switch from courseware to type
-    staticFolderURL = staticFolderURL + "+type@asset+block/";
-
-    return staticFolderURL + filename;
+    return staticFileURL;
   }
 
   // UNFINISHED
