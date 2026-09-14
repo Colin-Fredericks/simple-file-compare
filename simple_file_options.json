@@ -1,11 +1,12 @@
 {
   "test_file_source": "test_reference",
-  "correct_answers": [
-    "MIT_LICENSE.txt"
-  ],
+  "files_or_hashes": "files",
+  "filenames": ["MIT_LICENSE_TEST.txt"],
+  "hashes": {
+    "textlog.js": "e771153422a9693fe7780d9fe84d2284dff16aefe00b9005b5a8c87ad4599405"
+  },
   "must_have": [],
   "cannot_have": [],
-  "files_or_hashes": "files",
   "credit_options": {
     "blank_lines": 0.8,
     "case": 0.6,
