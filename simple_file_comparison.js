@@ -34,10 +34,13 @@ let options_filename = document.currentScript.getAttribute("data-options");
     let all_file_content = {};
 
     // Options can be set in the HTML for testing, or retrieved from the server for production.
+    // Priority:
     if (!window.file_comparison_options) {
       window.file_comparison_options = await getOptions(environment);
     }
     const options = window.file_comparison_options;
+    console.log("Options:");
+    console.log(options);
 
     displayMessage("Required files: " + options.filenames.join(", "), "prompt-area", false);
 
@@ -59,7 +62,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
       fileDropArea.classList.remove("dragover");
       const files = event.dataTransfer.files;
       all_file_content = await readFiles(files, options);
-      compareFiles(all_file_content, options);
+      compareFiles(all_file_content, options, environment);
     });
 
     // Let people click on the area to open a file dialog
@@ -71,7 +74,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
       fileInput.addEventListener("change", async (event) => {
         const files = event.target.files;
         all_file_content = await readFiles(files, options);
-        compareFiles(all_file_content, options);
+        compareFiles(all_file_content, options, environment);
       });
       fileInput.click();
     });
@@ -114,8 +117,9 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * Returns score and comments.
    * @param {*} all_file_content
    * @param {*} options
+   * @param {*} environment
    */
-  async function compareFiles(all_file_content, options) {
+  async function compareFiles(all_file_content, options, environment) {
     if (Object.keys(all_file_content).length !== options.filenames.length) {
       console.error("Did not upload all files.");
       displayMessage(
@@ -179,7 +183,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
         displayMessage("Filename: " + f.name, "output-area", true);
 
         // Go get the file to compare to.
-        let correct_file_content = await retrieveFile(f.name, options.test_file_source);
+        let correct_file_content = await retrieveFile(f.name, options.test_file_source, environment);
 
         // Using hashes if you want to avoid revealing the correct answer
         if (options.files_or_hashes === "hashes") {
