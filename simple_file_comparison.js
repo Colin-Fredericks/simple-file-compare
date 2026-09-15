@@ -1,14 +1,5 @@
 "use strict";
 console.log("working");
-let options_filename = document.currentScript.getAttribute("data-options");
-
-/*********************************
- * TODO
- *
- * - Need to switch away from getting asset URL, because LXP works so differently.
- *   We need to get the file's fully qualified URL instead, and pass that around.
- * - Simplify the whole comparison process, maybe factorize more.
- **********************************/
 
 (function () {
   /** Check environment and initialize. */
@@ -29,14 +20,29 @@ let options_filename = document.currentScript.getAttribute("data-options");
     // Done
   }
 
-  /** Create the file drop area and set up listeners. No parameters. */
+  /** Create the file drop area and set up listeners. No return value. */
   async function init(environment) {
     let all_file_content = {};
+    let url_lookup_table = {};
+    let options_filename = "ERROR";
+    if (environment === "edx" || environment === "localhost") {
+      options_filename = document.currentScript.getAttribute("data-options");
+    } else if (environment === "lxp") {
+      options_filename = window.hx_simplefile_options_filename;
+      url_lookup_table = hxMediaLookupTable();
+    } else {
+      console.error("Unknown environment - expecting to run on edX, LXP, or localhost.");
+      return;
+    }
 
-    // Options can be set in the HTML for testing, or retrieved from the server for production.
-    // Priority:
+    // Options must be set in the HTML or retrieved from the server.
+    // Priority goes to those set in the HTML, to make testing easier.
     if (!window.hx_file_comparison_options) {
-      window.hx_file_comparison_options = await getOptions(environment);
+      window.hx_file_comparison_options = await getOptions(
+        environment,
+        options_filename,
+        url_lookup_table,
+      );
     }
     const options = window.hx_file_comparison_options;
     console.log("Options:");
@@ -61,8 +67,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
       event.preventDefault();
       fileDropArea.classList.remove("hx-dragover");
       const files = event.dataTransfer.files;
-      all_file_content = await readFiles(files, options);
-      compareFiles(all_file_content, options, environment);
+      all_file_content = await readFiles(files, options, url_lookup_table);
+      compareFiles(all_file_content, options, environment, url_lookup_table);
     });
 
     // Let people click on the area to open a file dialog
@@ -73,8 +79,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
       fileInput.multiple = true; // Allow multiple files to be selected.
       fileInput.addEventListener("change", async (event) => {
         const files = event.target.files;
-        all_file_content = await readFiles(files, options);
-        compareFiles(all_file_content, options, environment);
+        all_file_content = await readFiles(files, options, url_lookup_table);
+        compareFiles(all_file_content, options, environment, url_lookup_table);
       });
       fileInput.click();
     });
@@ -85,10 +91,11 @@ let options_filename = document.currentScript.getAttribute("data-options");
    *
    * @param {FileList} files - The list of files uploaded by the learner.
    * @param {Object} options - The options for the file comparison, as defined in the XML.
+   * @param {Object} url_lookup_table - A table mapping filenames to their URLs.
    *
    * @returns {Promise<Object>} An object containing the file information.
    */
-  async function readFiles(files, options) {
+  async function readFiles(files, options, url_lookup_table) {
     let all_file_content = {};
     for (const f of files) {
       const reader = new FileReader();
@@ -115,11 +122,12 @@ let options_filename = document.currentScript.getAttribute("data-options");
   /**
    * Compares file content uploaded by learners to the correct answers.
    * Returns score and comments.
-   * @param {*} all_file_content
-   * @param {*} options
-   * @param {*} environment
+   * @param {Object} all_file_content
+   * @param {Object} options
+   * @param {String} environment
+   * @param {Object} url_lookup_table
    */
-  async function compareFiles(all_file_content, options, environment) {
+  async function compareFiles(all_file_content, options, environment, url_lookup_table) {
     if (Object.keys(all_file_content).length !== options.filenames.length) {
       console.error("Did not upload all files.");
       displayMessage(
@@ -183,7 +191,12 @@ let options_filename = document.currentScript.getAttribute("data-options");
         displayMessage("Filename: " + f.name, "hx-output-area", true);
 
         // Go get the file to compare to.
-        let correct_file_content = await retrieveFile(f.name, options.test_file_source, environment);
+        let correct_file_content = await retrieveFile(
+          f.name,
+          options.test_file_source,
+          environment,
+          url_lookup_table,
+        );
 
         // Using hashes if you want to avoid revealing the correct answer
         if (options.files_or_hashes === "hashes") {
@@ -338,8 +351,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
     }
 
     /**********************************
-  Final credit calculation section
-  **********************************/
+    Final credit calculation section
+    **********************************/
     let credit = current_credit / max_credit;
     let msg = "";
     if (credit < options.credit_options.low_cutoff) {
@@ -376,11 +389,17 @@ let options_filename = document.currentScript.getAttribute("data-options");
   }
 
   /**
-   * Pulls options from the HTML on the page.
-   * On edX these are declared in Python and inserted into the HTML.
+   * Loads options from the JSON file specified
+   * 
+   * @param {String} environment - The environment (edx, lxp, or localhost) because they all work differently.
+   * @param {String} options_filename - The name of the JSON file containing the options.
+   * @param {Object} url_lookup_table - A table mapping filenames to their URLs. Used only for LXP.
+   * @returns {Promise<Object>} The parsed options object.
    */
-  async function getOptions(environment) {
-    let options = JSON.parse(await retrieveFile(options_filename, "", environment));
+  async function getOptions(environment, options_filename, url_lookup_table) {
+    let options = JSON.parse(
+      await retrieveFile(options_filename, "", environment, url_lookup_table),
+    );
     console.log(options);
     return options;
   }
@@ -438,9 +457,9 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
   /**
    * Displays a message in the specified area.
-   * @param {string} message - The message to display.
-   * @param {string} area_id - The ID where we're displaying - normally info or output
-   * @param {boolean} append - Whether to append the message or replace existing content.
+   * @param {String} message - The message to display.
+   * @param {String} area_id - The ID where we're displaying - normally info or output
+   * @param {Boolean} append - Whether to append the message or replace existing content.
    */
   function displayMessage(message, area_id, append = false) {
     let info_area = document.getElementById(area_id);
@@ -455,28 +474,35 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
   /**
    * Turns a decimal number or string to a percentage string.
-   * @param {number|string} decimal - The decimal number to convert.
-   * @param {number} n - The number of decimal places to include in the percentage.
-   * @returns {string} The percentage string.
+   * @param {Number|String} decimal - The decimal number to convert.
+   * @param {Number} n - The number of decimal places to include in the percentage.
+   * @returns {String} The percentage string.
    */
   function decimalToPercentage(decimal, n = 0) {
     decimal = parseFloat(decimal);
     return (decimal * 100).toFixed(n) + "%";
   }
 
-  /** Loads the file from the listed folder. Folder can be a fully qualified URL. */
-  async function retrieveFile(file_name, folder_name, environment) {
+  /**
+   * Loads the file from the listed folder. Folder can be a fully qualified URL.
+   *
+   * @param {String} file_name - The name of the file to retrieve.
+   * @param {String} folder_name - The name of the folder where the file is located (on localhost only)
+   * @param {String} environment - The environment (edx, lxp, or localhost) because they all work differently.
+   * @param {Object} url_lookup_table - A table mapping filenames to their URLs. Used only for LXP.
+   * @returns {Promise<string>} The content of the file as a string.
+   */
+  async function retrieveFile(file_name, folder_name, environment, url_lookup_table) {
     folder_name = folder_name.replace(/^\/|\/$/g, ""); // Remove leading and trailing slashes
     let file_url = "";
     if (environment === "edx") {
-      file_url = getEdxFileURL(file_name, "");
+      file_url = getEdxFileURL(file_name);
     } else if (environment === "lxp") {
-      file_url = getLxpFileURL(file_name, "");
+      file_url = getLxpFileURL(file_name, url_lookup_table);
     } else {
       // Assume localhost or other environment
       file_url = window.location.origin + "/" + folder_name + "/" + file_name;
     }
-    console.log(file_url);
     const file_content = await fetch(file_url).then((response) => response.text());
     return file_content;
   }
@@ -484,8 +510,8 @@ let options_filename = document.currentScript.getAttribute("data-options");
   /**
    * Gets asset URLs for edX
    *
-   * @param {string} filename - The name of the file to retrieve.
-   * @returns {string} The fully qualified URL for the asset file.
+   * @param {String} filename - The name of the file to retrieve.
+   * @returns {String} The fully qualified URL for the asset file.
    */
   function getEdxFileURL(filename) {
     let windowURL = window.location.href;
@@ -522,20 +548,20 @@ let options_filename = document.currentScript.getAttribute("data-options");
   /**
    * Gets asset URLs for LXP
    *
-   * @param {string} filename - The name of the file to retrieve.
-   * @returns {string} The fully qualified URL for the asset file.
+   * @param {String} filename - The name of the file to retrieve.
+   * @param {Object} lookup_table - A table mapping filenames to their URLs. Used for LXP only.
+   * @returns {String} The fully qualified URL for the asset file.
    */
-  function getLxpFileURL(filename) {
-    let all_images = hxMediaLookupTable();
-    return all_images[filename];
+  function getLxpFileURL(filename, lookup_table) {
+    return lookup_table[filename];
   }
 
   /**
- * Creates an object with media filenames with keys and their URLs as values,
- * so that we can handle media files by name rather than by ID.
- *
- * @returns {Object} media_lookup - An object mapping media filenames to their corresponding signed URLs.
- */
+   * Creates an object with media filenames with keys and their URLs as values,
+   * so that we can handle media files by name rather than by ID.
+   *
+   * @returns {Object} media_lookup - An object mapping media filenames to their corresponding signed URLs.
+   */
   function hxMediaLookupTable() {
     let data_te_ids = document.currentScript.getAttribute("data-te-ids").split(",");
     console.log("What TEs am I running in?");
@@ -574,7 +600,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * Hashes text to SHA256 for the purpose of comparing answers without revealing the answer itself.
    * Taken from https://stackoverflow.com/a/70243259/1330737
    *
-   * @param {string} source
+   * @param {String} source
    * @returns {Promise<string>}
    */
   async function sha256(source) {
