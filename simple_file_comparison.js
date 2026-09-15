@@ -35,31 +35,31 @@ let options_filename = document.currentScript.getAttribute("data-options");
 
     // Options can be set in the HTML for testing, or retrieved from the server for production.
     // Priority:
-    if (!window.file_comparison_options) {
-      window.file_comparison_options = await getOptions(environment);
+    if (!window.hx_file_comparison_options) {
+      window.hx_file_comparison_options = await getOptions(environment);
     }
-    const options = window.file_comparison_options;
+    const options = window.hx_file_comparison_options;
     console.log("Options:");
     console.log(options);
 
-    displayMessage("Required files: " + options.filenames.join(", "), "prompt-area", false);
+    displayMessage("Required files: " + options.filenames.join(", "), "hx-prompt-area", false);
 
     // Create a file-drop area for processing.
-    const fileDropArea = document.getElementById("file-drop-area");
+    const fileDropArea = document.getElementById("hx-file-drop-area");
     // Add event listeners for drag and drop functionality.
     fileDropArea.addEventListener("dragover", (event) => {
       event.preventDefault();
-      fileDropArea.classList.add("dragover");
+      fileDropArea.classList.add("hx-dragover");
     });
 
     fileDropArea.addEventListener("dragleave", (event) => {
       event.preventDefault();
-      fileDropArea.classList.remove("dragover");
+      fileDropArea.classList.remove("hx-dragover");
     });
 
     fileDropArea.addEventListener("drop", async (event) => {
       event.preventDefault();
-      fileDropArea.classList.remove("dragover");
+      fileDropArea.classList.remove("hx-dragover");
       const files = event.dataTransfer.files;
       all_file_content = await readFiles(files, options);
       compareFiles(all_file_content, options, environment);
@@ -128,7 +128,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
           " out of " +
           options.filenames.length +
           " required files. Please upload the required files.",
-        "output-area",
+        "hx-output-area",
         false,
       );
       return;
@@ -150,7 +150,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
         console.error("Unexpected file: " + f.name);
         displayMessage(
           "Unexpected file: " + f.name + ". Please upload the required files.",
-          "output-area",
+          "hx-output-area",
           true,
         );
         continue;
@@ -176,11 +176,11 @@ let options_filename = document.currentScript.getAttribute("data-options");
         !f.type.includes("python")
       ) {
         // This is not a text file.
-        let outputArea = document.querySelector("#output-area");
+        let outputArea = document.querySelector("#hx-output-area");
         outputArea.innerHTML += "<p>" + f.name + " is of type " + f.type + ", not a text file.</p>";
       } else {
         // Yay it's a text file!
-        displayMessage("Filename: " + f.name, "output-area", true);
+        displayMessage("Filename: " + f.name, "hx-output-area", true);
 
         // Go get the file to compare to.
         let correct_file_content = await retrieveFile(f.name, options.test_file_source, environment);
@@ -371,7 +371,7 @@ let options_filename = document.currentScript.getAttribute("data-options");
     }
     console.log("Final credit: " + decimalToPercentage(credit));
     message += "Final credit: " + decimalToPercentage(credit) + "\n";
-    displayMessage(message, "output-area", true);
+    displayMessage(message, "hx-output-area", true);
     // Send it back or save the state or whatever.
   }
 

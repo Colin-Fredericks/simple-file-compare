@@ -8,7 +8,7 @@
         font-size: 1.125rem;
       }
 
-      .drop-area {
+      .hx-drop-area {
         width: 50%;
         height: 150px;
         font-size: 1.125rem;
@@ -24,7 +24,7 @@
         justify-content: center;
       }
 
-      .drop-area.dragover {
+      .hx-drop-area.hx-dragover {
         border-color: #000;
       }
     </style>
@@ -33,12 +33,12 @@
       // - Filenames cannot be blank.
       // - Hashes can be blank if you're comparing whole files.
       // - must_have and cannot_have are string arrays.
-      window.file_comparison_options = {
+      window.hx_file_comparison_options = {
         test_file_source: "test_reference",
         files_or_hashes: "files",
-        filenames: ["MIT_LICENSE.txt"],
+        filenames: ["MIT_LICENSE_TEST.txt"],
         hashes: {
-          "MIT_LICENSE.txt": "e771153422a9693fe7780d9fe84d2284dff16aefe00b9005b5a8c87ad4599405"
+          "MIT_LICENSE_TEST.txt": "e771153422a9693fe7780d9fe84d2284dff16aefe00b9005b5a8c87ad4599405"
         },
         must_have: [],
         cannot_have: [],
@@ -55,12 +55,12 @@
   </head>
 
   <body>
-    <div id="prompt-area"></div>
-    <button id="file-drop-area" class="drop-area">
+    <div id="hx-prompt-area"></div>
+    <button id="hx-file-drop-area" class="hx-drop-area">
       Drop files here or click to select files
     </button>
-    <div id="info-area"></div>
-    <div id="output-area"></div>
+    <div id="hx-info-area"></div>
+    <div id="hx-output-area"></div>
     <script src="simple_file_comparison.js" data-options="simple_file_options.json"></script>
   </body>
 </html>
