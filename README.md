@@ -28,7 +28,7 @@ Declared in the inline javascript (takes priority) or in a referenced file.
 
 ## Status
 
-Functions in edX! Still working on LXP version.
+Functions on both edX and LXP. Call this the 1.0 version.
 
 Needs to be prettier.
 
