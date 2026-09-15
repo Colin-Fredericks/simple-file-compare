@@ -124,10 +124,10 @@ let options_filename = document.currentScript.getAttribute("data-options");
       console.error("Did not upload all files.");
       displayMessage(
         "You uploaded " +
-          Object.keys(all_file_content).length +
-          " out of " +
-          options.filenames.length +
-          " required files. Please upload the required files.",
+        Object.keys(all_file_content).length +
+        " out of " +
+        options.filenames.length +
+        " required files. Please upload the required files.",
         "hx-output-area",
         false,
       );
@@ -485,11 +485,10 @@ let options_filename = document.currentScript.getAttribute("data-options");
    * Gets asset URLs for edX
    *
    * @param {string} filename - The name of the file to retrieve.
-   * @param {string} test_url - Optional URL to use instead of the current window location, for testing
    * @returns {string} The fully qualified URL for the asset file.
    */
-  function getEdxFileURL(filename, test_url = "") {
-    let windowURL = test_url || window.location.href;
+  function getEdxFileURL(filename) {
+    let windowURL = window.location.href;
     console.log(filename);
 
     // Sometimes escape characters are not our friends.
@@ -520,61 +519,54 @@ let options_filename = document.currentScript.getAttribute("data-options");
     return staticFileURL;
   }
 
-  // UNFINISHED
   /**
    * Gets asset URLs for LXP
    *
    * @param {string} filename - The name of the file to retrieve.
-   * @param {string} test_url - Optional URL to use instead of the current window location, for testing
    * @returns {string} The fully qualified URL for the asset file.
    */
-  function getLxpFileURL(filename, test_url = "") {
+  function getLxpFileURL(filename) {
     let all_images = hxMediaLookupTable();
-    let image_url_array = Object.keys(all_images).map((key) => all_images[key]);
-
-    let target_div = document.querySelector("#all_images");
-    image_url_array.forEach((url) => {
-      let new_image = document.createElement("img");
-      new_image.classList.add("browser-icon");
-      new_image.src = url;
-      target_div.appendChild(new_image);
-    });
-
-    /**
-     * Creates an object with media filenames with keys and their URLs as values,
-     * so that we can handle media files by name rather than by ID.
-     *
-     * @returns {Object} media_lookup -
-     */
+    return all_images[filename];
   }
 
+  /**
+ * Creates an object with media filenames with keys and their URLs as values,
+ * so that we can handle media files by name rather than by ID.
+ *
+ * @returns {Object} media_lookup - An object mapping media filenames to their corresponding signed URLs.
+ */
   function hxMediaLookupTable() {
     let data_te_ids = document.currentScript.getAttribute("data-te-ids").split(",");
     console.log("What TEs am I running in?");
     console.log(data_te_ids);
 
     let media = window.lxp.te[data_te_ids[0]].media;
-    console.log("Media proxy");
-    console.log(media);
+    console.debug("Media proxy");
+    console.debug(media);
     let media_array = Object.keys(media);
-    console.log("Media identifiers");
-    console.log(media_array);
+    console.debug("Media identifiers");
+    console.debug(media_array);
     let media_names = Object.keys(media).map((x) => media[x].filename);
-    console.log("Image filenames");
-    console.log(media_names);
+    console.debug("Image filenames");
+    console.debug(media_names);
     let media_url_array = media_array.map((key) => media[key].publicUrl);
-    console.log("Image URLs");
-    console.log(media_url_array);
+    console.debug("Image URLs");
+    console.debug(media_url_array);
 
     let media_lookup = {};
     media_array.forEach((key, index) => {
+      let filename = media_names[index];
       // Use the first image with that name; don't overwrite with later ones.
-      if (!media_lookup[key]) {
-        media_lookup[key] = media_url_array[index];
+      if (!media_lookup[filename]) {
+        media_lookup[filename] = media_url_array[index];
+        console.log("Media filename: " + filename + " URL: " + media_lookup[filename]);
       } else {
-        console.log("Duplicate media filename: " + key);
+        console.log("Duplicate media filename: " + filename);
       }
     });
+    console.log("Media lookup table");
+    console.log(media_lookup);
     return media_lookup;
   }
 
