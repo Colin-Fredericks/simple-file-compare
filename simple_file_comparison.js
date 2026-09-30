@@ -233,6 +233,12 @@ console.log("working");
         // let offset = 0;
         let matches_by_line = [];
         for (let i = 0; i < correct_file_by_line.length; i++) {
+          if (i >= submitted_file_by_line.length) {
+            console.log("Ran out of lines in submitted file.");
+            message += f.name + " is too short.\nNo credit for this file.\n\n";
+            this_file_credit = 0;
+            break;
+          }
           let correct_line_is_blank = correct_file_by_line[i].trim() === "";
           let submitted_line_is_blank = submitted_file_by_line[i].trim() === "";
 
@@ -252,12 +258,6 @@ console.log("working");
             if (submitted_file_by_line[i].includes(required_word)) {
               missing_required_word[j] = false;
             }
-          }
-
-          if (i >= submitted_file_by_line.length) {
-            console.log("Ran out of lines in submitted file.");
-            message += f.name + " is too short. No credit for this file.\n";
-            break;
           }
 
           if (correct_file_by_line[i] === submitted_file_by_line[i]) {
