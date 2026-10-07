@@ -48,7 +48,7 @@ console.log("working");
     console.log("Options:");
     console.log(options);
 
-    displayMessage("Required files: " + options.filenames.join(", "), "hx-prompt-area", false);
+    displayMessage("Required files:\n" + options.filenames.join(",\n"), "hx-prompt-area", false);
 
     // Create a file-drop area for processing.
     const fileDropArea = document.getElementById("hx-file-drop-area");
@@ -142,7 +142,6 @@ console.log("working");
       return;
     }
 
-    let input_files = Object.keys(all_file_content);
     let required_files = options.filenames.slice(); // Make a copy of the required filenames
     let max_credit = Object.keys(all_file_content).length;
     let current_credit = 0;
