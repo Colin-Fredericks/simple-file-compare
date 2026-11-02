@@ -90,12 +90,10 @@ console.log("working");
    * Reads in the learner files and returns most of the info as an object.
    *
    * @param {FileList} files - The list of files uploaded by the learner.
-   * @param {Object} options - The options for the file comparison, as defined in the XML.
-   * @param {Object} url_lookup_table - A table mapping filenames to their URLs.
    *
    * @returns {Promise<Object>} An object containing the file information.
    */
-  async function readFiles(files, options, url_lookup_table) {
+  async function readFiles(files) {
     let all_file_content = {};
     for (const f of files) {
       const reader = new FileReader();
@@ -192,7 +190,7 @@ console.log("working");
         // Go get the file to compare to.
         let correct_file_content = await retrieveFile(
           f.name,
-          options.test_file_source,
+          options.test_file_source || "",
           environment,
           url_lookup_table,
         );
@@ -232,12 +230,6 @@ console.log("working");
         // let offset = 0;
         let matches_by_line = [];
         for (let i = 0; i < correct_file_by_line.length; i++) {
-          if (i >= submitted_file_by_line.length) {
-            console.log("Ran out of lines in submitted file.");
-            message += f.name + " is too short.\nNo credit for this file.\n\n";
-            this_file_credit = 0;
-            break;
-          }
           let correct_line_is_blank = correct_file_by_line[i].trim() === "";
           let submitted_line_is_blank = submitted_file_by_line[i].trim() === "";
 
@@ -257,6 +249,12 @@ console.log("working");
             if (submitted_file_by_line[i].includes(required_word)) {
               missing_required_word[j] = false;
             }
+          }
+
+          if (i >= submitted_file_by_line.length) {
+            console.log("Ran out of lines in submitted file.");
+            message += f.name + " is too short. No credit for this file.\n";
+            break;
           }
 
           if (correct_file_by_line[i] === submitted_file_by_line[i]) {
@@ -327,6 +325,7 @@ console.log("working");
       }
       if (missing_required_word.includes(true)) {
         console.log("Missing required word(s) in " + f.name);
+        message += "Missing required word(s) in " + f.name + ". No credit for this file.\n";
         this_file_credit = 0;
       }
 
@@ -363,7 +362,7 @@ console.log("working");
       message += msg;
       console.log(msg);
     }
-    if (credit + options.credit_options.participation_points <= 1) {
+    if (credit + options.credit_options.participation_points <= 1 && options.credit_options.participation_points > 0) {
       credit += options.credit_options.participation_points;
       msg =
         "Adding participation points: +" +
@@ -384,12 +383,11 @@ console.log("working");
     console.log("Final credit: " + decimalToPercentage(credit));
     message += "Final credit: " + decimalToPercentage(credit) + "\n";
     displayMessage(message, "hx-output-area", true);
-    // Send it back or save the state or whatever.
   }
 
   /**
    * Loads options from the JSON file specified
-   * 
+   *
    * @param {String} environment - The environment (edx, lxp, or localhost) because they all work differently.
    * @param {String} options_filename - The name of the JSON file containing the options.
    * @param {Object} url_lookup_table - A table mapping filenames to their URLs. Used only for LXP.
@@ -444,7 +442,10 @@ console.log("working");
         decimalToPercentage(options.credit_options.case) +
         "\n";
     }
-    if (options.credit_options.blank_lines < 1 && apply_partial_credit.blank_lines) {
+    if (
+      options.credit_options.blank_lines < 1 &&
+      apply_partial_credit.blank_lines
+    ) {
       message +=
         "Partial credit for extra blank lines: x" +
         decimalToPercentage(options.credit_options.blank_lines) +
@@ -539,7 +540,11 @@ console.log("working");
     }
 
     let staticFileURL =
-      "https://courses.edx.org/" + "asset" + courseIdentifier + "+type@asset+block/" + filename;
+      "https://courses.edx.org/" +
+      "asset" +
+      courseIdentifier +
+      "+type@asset+block/" +
+      filename;
 
     return staticFileURL;
   }
