@@ -28,7 +28,12 @@ console.log("working");
     if (environment === "edx" || environment === "localhost") {
       options_filename = document.currentScript.getAttribute("data-options");
     } else if (environment === "lxp") {
+      if(!window.hx_simplefile_options_filename) {
+        console.error("Missing window.hx_simplefile_options_filename string.");
+        return;
+      }
       options_filename = window.hx_simplefile_options_filename;
+      console.log("LXP options filename: " + options_filename);
       url_lookup_table = hxMediaLookupTable();
     } else {
       console.error("Unknown environment - expecting to run on edX, LXP, or localhost.");
@@ -37,7 +42,12 @@ console.log("working");
 
     // Options must be set in the HTML or retrieved from the server.
     // Priority goes to those set in the HTML, to make testing easier.
-    if (!window.hx_file_comparison_options) {
+    // If the options object already exists, we only need to fetch it if the filename changed.
+    try {
+      if(!window.hx_file_comparison_options || window.hx_file_comparison_options.filename !== options_filename) {
+        throw new Error("Options filename changed or options not set. Fetching options.");
+      }
+    } catch(e) {
       window.hx_file_comparison_options = await getOptions(
         environment,
         options_filename,
@@ -45,6 +55,7 @@ console.log("working");
       );
     }
     const options = window.hx_file_comparison_options;
+    options.filename = options_filename;
     console.log("Options:");
     console.log(options);
 
